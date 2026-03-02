@@ -10,7 +10,7 @@ from openai import OpenAI
 # ===============================
 
 rf = joblib.load("models/rf.pkl")
-gb = joblib.load("models/gb.pkl")
+gb = joblib.load("models/gb.pkl")   
 lr = joblib.load("models/lr.pkl")
 knn = joblib.load("models/knn.pkl")
 nb = joblib.load("models/nb.pkl")
