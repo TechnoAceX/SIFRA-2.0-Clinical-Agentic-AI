@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SIFRA Clinical Report</title>
+
+<style>
+
+body{
+font-family:Arial;
+padding:60px;
+max-width:800px;
+margin:auto;
+}
+
+h1{
+text-align:center;
+}
+
+.section{
+margin-top:30px;
+}
+
+button{
+margin-top:40px;
+padding:12px 20px;
+background:#2563eb;
+color:white;
+border:none;
+border-radius:6px;
+cursor:pointer;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>SIFRA Clinical AI Report</h1>
+
+<p><b>Date:</b> <span id="date"></span></p>
+<p><b>Patient Name:</b> <span id="name"></span></p>
+<p><b>Risk Score:</b> <span id="risk"></span>%</p>
+
+<div class="section">
+<h3>Clinical Interpretation</h3>
+<p id="report"></p>
+</div>
+
+<div class="section">
+<h3>Laboratory Values</h3>
+<p>Glucose: <span id="glucose"></span></p>
+<p>HbA1c: <span id="hba1c"></span></p>
+</div>
+
+<button onclick="window.print()">Download / Print PDF</button>
+
+<script>
+
+const params = new URLSearchParams(window.location.search);
+
+document.getElementById("date").innerText = new Date().toDateString();
+document.getElementById("name").innerText = params.get("name");
+document.getElementById("risk").innerText = params.get("risk");
+document.getElementById("glucose").innerText = params.get("glucose");
+document.getElementById("hba1c").innerText = params.get("hba1c");
+document.getElementById("report").innerText = params.get("report");
+
+</script>
+
+</body>
+</html>

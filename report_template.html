@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+
+body{
+font-family: Arial;
+padding:60px;
+}
+
+h1{
+text-align:center;
+}
+
+.section{
+margin-top:25px;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>SIFRA Clinical AI Report</h1>
+<h2 style="text-align:center">MEDICAL CERTIFICATE</h2>
+
+<div class="section">
+<b>Date:</b> {{date}}
+</div>
+
+<div class="section">
+<b>Name:</b> {{name}}
+</div>
+
+<div class="section">
+<b>Risk Score:</b> {{risk}}
+</div>
+
+<div class="section">
+<h3>Clinical Interpretation</h3>
+{{interpretation}}
+</div>
+
+<div class="section">
+<h3>Laboratory Values</h3>
+Glucose: {{glucose}}<br>
+HbA1c: {{hba1c}}
+</div>
+
+<div class="section">
+<h3>Key Risk Drivers</h3>
+{{drivers}}
+</div>
+
+<div class="section">
+<h3>Clinical Recommendations</h3>
+{{recommendations}}
+</div>
+
+<div class="section">
+<h3>Preventive Advice</h3>
+{{advice}}
+</div>
+
+</body>
+</html>

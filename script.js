@@ -22,6 +22,10 @@ const textDecision = document.getElementById("text-decision");
 const textReport   = document.getElementById("text-report");
 const textEval     = document.getElementById("text-eval");
 
+submitBtn.addEventListener("click", () => {
+  form.requestSubmit();
+});
+
 /* ================== TOGGLE BUTTON LOGIC ================== */
 document.querySelectorAll(".toggle-btn").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -76,18 +80,18 @@ function animateGauge(percent) {
   gaugeFill.style.strokeDashoffset = offset;
   gaugeValue.textContent = percent;
 
-  if (percent < 30) {
-    riskLabel.textContent = "Low Risk";
-    gaugeFill.style.stroke = "#10b981"; // Green
-  } 
-  else if (percent < 60) {
-    riskLabel.textContent = "Moderate Risk";
-    gaugeFill.style.stroke = "#f59e0b"; // Yellow
-  } 
-  else {
-    riskLabel.textContent = "High Risk";
-    gaugeFill.style.stroke = "#ef4444"; // Red
-  }
+      if (percent < 30) {
+      riskLabel.textContent = "Low Risk";
+      gaugeFill.style.stroke = "#10b981"; // green
+    }
+    else if (percent < 70) {
+      riskLabel.textContent = "Moderate Risk";
+      gaugeFill.style.stroke = "#f59e0b"; // yellow
+    }
+    else {
+      riskLabel.textContent = "High Risk";
+      gaugeFill.style.stroke = "#ef4444"; // red
+    }
 }
 
 
@@ -118,7 +122,7 @@ function formatMarkdown(text) {
 
 function renderResults(data) {
 
-  const percent = Math.round(Number(data.risk_score) * 100);
+  const percent = Math.round(Number(data.risk_score) * 100).toFixed(1);
 
   animateGauge(percent);
 
@@ -154,6 +158,24 @@ form.addEventListener("submit", async (e) => {
 
     const result = await response.json();
     console.log("FULL BACKEND RESPONSE:", result);
+hideLoading();
+renderResults(result);
+
+// trigger after UI loads
+setTimeout(() => {
+
+  if (result.action_required) {
+      const userConsent = confirm(
+          result.consent_prompt || 
+          "⚠️ High risk detected.\n\nWould you like to book an appointment?"
+      );
+
+      if (userConsent) {
+          window.open("https://www.practo.com/", "_blank");
+      }
+  }
+
+}, 600);
 
     if (!result || !result.success) {
       showError("Backend returned invalid data.");
@@ -172,8 +194,6 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
-
-/* ================== CHATBOT ================== */
 
 /* ================== CHATBOT ================== */
 
@@ -277,3 +297,125 @@ suggestionChips.forEach(chip => {
 window.addEventListener("DOMContentLoaded", () => {
   addChatMessage("Hello 👋 I am <strong>SIFRA</strong>. Ask me any clinical question.", "bot-message");
 });
+
+/* ================== REPORT DOWNLOAD ================== */
+
+document.getElementById("download-btn").addEventListener("click", () => {
+  try {
+    document.getElementById("r-date").innerText = new Date().toDateString()
+    document.getElementById("r-name").innerText = document.getElementById("name").value
+    document.getElementById("r-risk").innerText = document.getElementById("gauge-value").innerText
+
+    document.getElementById("r-glucose").innerText = document.getElementById("glucose").value
+    document.getElementById("r-hba1c").innerText = document.getElementById("hba1c").value
+
+    document.getElementById("r-report").innerText = document.getElementById("text-report").innerText
+    document.getElementById("r-rec").innerText = "Follow lifestyle modification and periodic monitoring"
+
+    const report = document.getElementById("pdf-report")
+
+    report.style.display = "block"
+
+    window.print()
+
+    report.style.display = "none"
+
+  } catch(err) {
+    console.error(err);
+    alert("Could not download report.");
+  }
+});
+
+async function downloadReport(reportData) {
+
+    const response = await fetch("http://127.0.0.1:8000/download-report", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(reportData)
+    });
+
+    const blob = await response.blob();
+
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "SIFRA_Report.pdf";
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+
+/* ================== EMAIL REPORT ================== */
+
+const params = new URLSearchParams(window.location.search);
+
+if(params.get("report") === "1"){
+
+document.getElementById("r-name").innerText = params.get("name");
+document.getElementById("r-risk").innerText = params.get("risk");
+document.getElementById("r-glucose").innerText = params.get("glucose");
+document.getElementById("r-hba1c").innerText = params.get("hba1c");
+
+const report = document.getElementById("pdf-report");
+
+report.style.display = "block";
+
+setTimeout(()=>{
+window.print();
+},500);
+
+}
+
+const emailBtn = document.getElementById("email-btn");
+
+if (emailBtn) {
+
+emailBtn.addEventListener("click", async () => {
+
+    const email = prompt("Enter your email address:");
+
+    if (!email) {
+        alert("Email required.");
+        return;
+    }
+
+const reportData = {
+
+    email: email,
+
+    patient_name: document.getElementById("name").value,
+
+    risk_score: document.getElementById("gauge-value").innerText,
+
+    glucose: document.getElementById("glucose").value,
+
+    hba1c: document.getElementById("hba1c").value,
+
+    clinical_interpretation: document.getElementById("text-decision").innerText,
+
+    recommendations: document.getElementById("text-report").innerText
+};
+
+const res = await fetch("http://127.0.0.1:8000/send-report", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify(reportData)
+});
+
+    const data = await res.json();
+
+    if (data.success) {
+        alert("Report sent successfully!");
+    } else {
+        alert("Email sent.");
+    }
+
+});
+
+}

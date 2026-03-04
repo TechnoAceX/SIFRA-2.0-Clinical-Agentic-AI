@@ -4,6 +4,7 @@ import joblib
 import pandas as pd
 import shap
 from openai import OpenAI
+import numpy as np
 
 # ===============================
 # LOAD TRAINED MODELS
@@ -79,21 +80,83 @@ def shap_tool(input_df):
 # AGENTS
 # ===============================
 
-def planning_agent(consensus, glucose, hba1c):
+def planning_agent(consensus, glucose, hba1c, impact_df, name):
 
     prompt = f"""
-Risk Score: {round(consensus*100,2)}%
-Glucose: {glucose}
-HbA1c: {hba1c}
+    You are SIFRA, a clinical decision support AI that explains the output of a diabetes risk prediction model.
 
-Choose one:
-1. Lifestyle intervention
-2. Specialist referral
-3. Monitoring
-4. No action
+    Your task is to interpret the model output responsibly and generate a structured clinical report.
 
-Return number + short justification.
-"""
+    Patient Name: {name}
+
+    Predicted Diabetes Risk Score: {round(consensus*100,2)}%
+
+    Laboratory Results:
+    Fasting Glucose: {glucose} mg/dL
+    HbA1c: {hba1c} %
+
+    Medical Reference Ranges:
+
+    Fasting Glucose:
+    70–99 mg/dL → Normal
+    100–125 mg/dL → Impaired fasting glucose (prediabetes risk)
+    ≥126 mg/dL → Diabetes range
+
+    HbA1c:
+    <5.7% → Normal
+    5.7–6.4% → Prediabetes
+    ≥6.5% → Diabetes range
+
+    Risk Categories used by SIFRA:
+    0–30% → Low Risk
+    30–60% → Moderate Risk
+    60–100% → High Risk
+
+    Important Instructions:
+    • This system predicts diabetes risk probability, not a medical diagnosis.
+    • Do NOT exaggerate medical risk.
+    • Interpret laboratory values strictly using the reference ranges above.
+
+    Model Explainability (SHAP Output):
+
+    {impact_df.to_string()}
+
+    SHAP Interpretation Rules:
+    • Positive SHAP values increase predicted diabetes risk.
+    • Negative SHAP values decrease predicted diabetes risk.
+    • Negative SHAP values represent protective factors and should NOT be described as harmful.
+
+    Feature Definitions:
+    GenHlth = Self-reported general health status
+    BMI = Body Mass Index
+    HighBP = History of high blood pressure
+    HighChol = History of high cholesterol
+    Age = Age category
+    PhysActivity = Regular physical activity
+    Fruits/Veggies = Dietary habits
+
+    Generate a structured clinical report with the following sections:
+
+    1. Risk Interpretation
+    Explain what the predicted diabetes risk score means.
+
+    2. Laboratory Interpretation
+    Interpret fasting glucose and HbA1c using the medical ranges above.
+
+    3. Key Risk Drivers
+    Explain the most important factors influencing the prediction based on SHAP values.
+
+    4. Clinical Recommendations
+    Provide recommendations appropriate for the patient's risk level.
+
+    5. Preventive Advice
+    Suggest lifestyle strategies to reduce diabetes risk.
+
+    6. Clinical Disclaimer
+    State that this is an AI-assisted risk assessment and not a medical diagnosis.
+
+    The report should be professional, medically responsible, and easy to understand.
+    """
 
     response = llm.chat.completions.create(
         model=LLM_MODEL,
@@ -137,19 +200,54 @@ def run_sifra_from_ui(name, features, glucose, hba1c):
     consensus, input_df = ml_tool(features)
     impact_df = shap_tool(input_df)
 
-    # 🔬 Clinical override logic
-    if glucose >= 126 or hba1c >= 6.5:
+    # ===============================
+    # CLINICAL OVERRIDE LOGIC
+    # ===============================
+
+    # Severe uncontrolled diabetes
+    if glucose >= 200 or hba1c >= 8:
+        consensus = max(consensus, 0.90)
+
+    # Strong diabetes signal
+    elif glucose >= 170 or hba1c >= 7:
         consensus = max(consensus, 0.75)
 
-    elif 100 <= glucose < 126 or 5.7 <= hba1c < 6.5:
-        consensus = max(consensus, 0.45)   # Moderate Risk
+    # Moderate diabetes risk
+    elif glucose >= 126 or hba1c >= 6.5:
+        consensus = max(consensus, 0.65)
 
-    decision = planning_agent(consensus, glucose, hba1c)
+    # Prediabetes
+    elif 100 <= glucose < 126 or 5.7 <= hba1c < 6.5:
+        consensus = max(consensus, 0.45)
+
+    # Ensure valid range
+    consensus = np.clip(consensus, 0, 1)
+
+    # ===============================
+    # AGENTS RUN AFTER FINAL RISK
+    # ===============================
+
+    decision = planning_agent(consensus, glucose, hba1c, impact_df, name)
     report = reasoning_agent(name, consensus, impact_df, glucose, hba1c)
+    consensus = np.clip(consensus, 0, 1)
+
+        # 👇 ADD HERE
+    consent_prompt = None
+    action_required = False
+
+    if consensus >= 0.7:
+        action_required = True
+
+        consent_prompt = f"""
+        The patient has high diabetes risk ({round(consensus*100,2)}%).
+
+        Would you like to book an appointment?
+        """
 
     return {
         "risk_score": consensus,
         "decision": decision,
-        "report": report
+        "report": report,
+        "action_required": action_required,
+        "consent_prompt": consent_prompt
     }
-

@@ -334,7 +334,7 @@
 
         <!-- SUBMIT -->
         <div class="form-actions">
-          <button type="submit" class="submit-btn" id="submit-btn">
+          <button type="button" class="submit-btn" id="submit-btn">
             <span class="submit-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
@@ -383,6 +383,33 @@
 
       <!-- RESULTS -->
       <div class="results-panel" id="results-panel" hidden>
+
+        <div id="appointmentBox" style="display:none;">
+        <p>⚠️ High risk detected. Would you like to consult a specialist?</p>
+        <button onclick="book()">Yes</button>
+        <button onclick="dismiss()">No</button>
+      </div>
+
+      <div id="pdf-report" style="display:none; padding:60px; font-family:Arial; max-width:800px; margin:auto;">
+
+      <h1 style="text-align:center;">SIFRA Clinical AI Report</h1>
+      <h2 style="text-align:center;">MEDICAL CERTIFICATE</h2>
+
+      <p><b>Date:</b> <span id="r-date"></span></p>
+      <p><b>Name:</b> <span id="r-name"></span></p>
+      <p><b>Risk Score:</b> <span id="r-risk"></span></p>
+
+      <h3>Clinical Interpretation</h3>
+      <p id="r-report"></p>
+
+      <h3>Laboratory Values</h3>
+      <p>Glucose: <span id="r-glucose"></span></p>
+      <p>HbA1c: <span id="r-hba1c"></span></p>
+
+      <h3>Recommendations</h3>
+      <p id="r-rec"></p>
+
+      </div>
 
         <!-- RISK SCORE CARD -->
         <div class="result-card risk-card">
@@ -440,6 +467,16 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                 Final Clinical Report
               </div>
+              <div class="report-actions">
+                  <button id="download-btn" class="report-btn download">
+                      ⬇ Download Report
+                  </button>
+
+                  <button id="email-btn" class="report-btn email">
+                      ✉ Email Report
+                  </button>
+              </div>
+
               <div class="report-block-text" id="text-report">—</div>
             </div>
             <div class="report-block" id="block-eval">
@@ -545,6 +582,7 @@
     </div>
     <p class="chat-disclaimer">For informational purposes only. Not medical advice.</p>
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <script src="script.js"></script>
 
